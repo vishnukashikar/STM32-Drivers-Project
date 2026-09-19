@@ -3,7 +3,7 @@
 A register-level peripheral driver project for the STM32C031C6 microcontroller, developed as a learning and experimentation project.
 
 > **Note:** This project is currently being developed and tested in a **simulation environment**.
-[text](https://wokwi.com/projects/473951649788058625)
+[simulation link](https://wokwi.com/projects/473951649788058625)
 
 ## Overview
 
