@@ -1,0 +1,32 @@
+# Build output
+build/
+bin/
+obj/
+Debug/
+Release/
+
+# Compiled files
+*.o
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+
+# IDE files
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Debug/log files
+*.log
