@@ -17,6 +17,7 @@ Current peripheral development focuses on:
 - EXTI / GPIO interrupts
 - SPI
 - I2C
+- USART
 - NVIC configuration within peripheral drivers
 
 ## Current Status
@@ -29,7 +30,7 @@ Current peripheral development focuses on:
 | SPI interrupts | Implemented |
 | I2C polling | Implemented, debugging |
 | I2C interrupts | Implemented, debugging |
-| USART | Not yet implemented |
+| USART | Implemented (polling) |
 
 ## Project Structure
 
@@ -40,12 +41,14 @@ stm32c031c6-register-level-drivers/
 │   ├── stm32c031c6.h
 │   ├── gpio.h
 │   ├── spi.h
-│   └── i2c.h
+│   ├── i2c.h
+│   └── usart.h
 │
 ├── src/
 │   ├── gpio.c
 │   ├── spi.c
 │   ├── i2c.c
+│   ├── usart.c
 │   └── main.c
 │
 ├── README.md
@@ -100,6 +103,21 @@ The I2C driver supports:
 
 > **Known issue:** The I2C transmit and receive functionality currently has bugs that are still being investigated and fixed.
 
+## USART
+
+The USART driver supports:
+
+- USART initialization / deinitialization
+- Polling-based data transmit (`USART_SendData`)
+- Polling-based data receive (`USART_ReceiveData`)
+- Dynamic baud rate calculation using RCC clock prescalers
+- Configurable word length (7-bit, 8-bit, 9-bit)
+- Configurable stop bits (1, 0.5, 2, 1.5)
+- Parity control (Even, Odd, or Disabled)
+- Oversampling selection (16x or 8x)
+- FIFO mode enable / disable
+- Status flag checking and clearing (`TXE`, `TC`, `RXNE`, etc.)
+
 ## MCU Register Definitions
 
 `stm32c031c6.h` contains custom register definitions and peripheral base addresses for the STM32C031C6.
@@ -144,7 +162,7 @@ This project is intended to develop practical understanding of:
 ## Roadmap
 
 - [ ] Fix I2C bugs
-- [ ] Add USART driver
+- [x] Add USART driver (polling Tx/Rx)
 - [ ] Build a project after getting physical hardware
 
 ## License

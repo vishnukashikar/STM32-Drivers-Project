@@ -32,6 +32,11 @@
 
 
 
+/**
+ * @brief  Enables or disables peripheral clock for I2C1 or I2C2.
+ * @param  pI2Cx  : Base address of I2C peripheral
+ * @param  EnorDi : ENABLE or DISABLE
+ */
 void I2C_PeriClkCtrl(I2C_RegDef_t *pI2Cx, uint8_t EnorDi) {
   if (EnorDi == ENABLE) {
     if (pI2Cx == I2C1) {
@@ -51,6 +56,11 @@ void I2C_PeriClkCtrl(I2C_RegDef_t *pI2Cx, uint8_t EnorDi) {
   }
 }
 
+/**
+ * @brief  Enables or disables the I2C peripheral via the PE bit in CR1.
+ * @param  pI2Cx  : Base address of I2C peripheral
+ * @param  EnorDi : ENABLE (PE = 1) or DISABLE (PE = 0)
+ */
 void I2C_PeriCtrl(I2C_RegDef_t *pI2Cx, uint8_t EnorDi) {
   if (EnorDi == ENABLE) {
     pI2Cx->CR1 |= (1 << 0);
@@ -60,7 +70,12 @@ void I2C_PeriCtrl(I2C_RegDef_t *pI2Cx, uint8_t EnorDi) {
   }
 }
 
-
+/**
+ * @brief  Checks whether a specific status flag in I2C_ISR is SET or RESET.
+ * @param  pI2Cx    : Base address of I2C peripheral
+ * @param  FlagName : Flag mask to check
+ * @return FLAG_SET or FLAG_RESET
+ */
 uint8_t I2C_GetFlagStatus(I2C_RegDef_t *pI2Cx, uint32_t FlagName) {
   if (pI2Cx->ISR & FlagName) {
     return FLAG_SET;
@@ -69,22 +84,29 @@ uint8_t I2C_GetFlagStatus(I2C_RegDef_t *pI2Cx, uint32_t FlagName) {
   return FLAG_RESET;
 }
 
+/**
+ * @brief  Initializes the I2C peripheral TIMINGR register for Standard Mode (100kHz)
+ *         or Fast Mode (400kHz) based on the APB clock.
+ * @param  pI2CHandle : Pointer to I2C handle
+ */
 void I2C_Init(I2C_Handle_t *pI2CHandle) {
   if (pI2CHandle->I2CConfig.I2C_SCLSpeed == I2C_SCL_SPEED_SM) {
-    pI2CHandle->pI2Cx->TIMINGR = 0x00402D41; // Hardcoded value for 12mhz clock which is the default clock for APB bus
+    pI2CHandle->pI2Cx->TIMINGR = 0x00402D41; // Value for 12MHz APB clock (SM 100kHz)
   }
   else if (pI2CHandle->I2CConfig.I2C_SCLSpeed == I2C_SCL_SPEED_FM) {
-    pI2CHandle->pI2Cx->TIMINGR = 0x00200410;
+    pI2CHandle->pI2Cx->TIMINGR = 0x00200410; // Value for 12MHz APB clock (FM 400kHz)
   }
   /*
   uint32_t tempreg = 0;
   tempreg |= pI2CHandle->I2CConfig.I2C_DeviceAddress << 1;
   tempreg |=  1 << 15;
   pI2CHandle->pI2Cx->OAR1 = tempreg;*/
-
-
 }
 
+/**
+ * @brief  Resets the I2C peripheral registers via RCC reset lines.
+ * @param  pI2Cx : Base address of I2C peripheral
+ */
 void I2C_DeInit(I2C_RegDef_t *pI2Cx) {
   if (pI2Cx == I2C1) {
     I2C1_REG_RESET();
@@ -94,6 +116,15 @@ void I2C_DeInit(I2C_RegDef_t *pI2Cx) {
   }
 }
 
+/**
+ * @brief  Master blocking data transmission over I2C.
+ *         Configures CR2 (7-bit address, NBYTES, START condition) and writes bytes to TXDR.
+ * @param  pI2CHandle : Pointer to I2C handle
+ * @param  pTxBuffer  : Pointer to transmit data buffer
+ * @param  Len        : Number of bytes to send
+ * @param  SlaveAddr  : 7-bit slave address
+ * @param  Sr         : Repeated Start (I2C_ENABLE_SR or I2C_DISABLE_SR)
+ */
 void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t Len, uint8_t SlaveAddr, uint8_t Sr)
 {
     /* Clear ADD10 — use 7-bit addressing */
@@ -149,7 +180,16 @@ void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t L
        The next MasterSend or MasterReceive call will issue the next START. */
 }
 
-
+/**
+ * @brief  Master blocking data reception over I2C.
+ *         Configures CR2 (7-bit address, read direction, NBYTES, START condition)
+ *         and reads incoming bytes from RXDR.
+ * @param  pI2CHandle : Pointer to I2C handle
+ * @param  pRxBuffer  : Pointer to receive data buffer
+ * @param  Len        : Number of bytes to receive
+ * @param  SlaveAddr  : 7-bit slave address
+ * @param  Sr         : Repeated Start (I2C_ENABLE_SR or I2C_DISABLE_SR)
+ */
 void I2C_MasterReceiveData(
     I2C_Handle_t *pI2CHandle,
     uint8_t *pRxBuffer,
@@ -280,6 +320,15 @@ void I2C_MasterReceiveData(
     }
 }
 
+/**
+ * @brief  Initiates master non-blocking data transmission using interrupts.
+ *         Configures CR2 (7-bit address, write, NBYTES) and enables TXIE, NACKIE, STOPIE, TCIE, ERRIE in CR1.
+ * @param  pI2CHandle : Pointer to I2C handle
+ * @param  pTxBuffer  : Pointer to transmit data
+ * @param  Len        : Number of bytes to transmit
+ * @param  SlaveAddr  : Target 7-bit slave address
+ * @return Communication state (I2C_BUSY_IN_TX or previous state if already busy)
+ */
 uint8_t I2C_MasterSendDataIT(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t Len, uint8_t SlaveAddr) {
   uint8_t busystate = pI2CHandle->TxRxState;
   if ((busystate != I2C_BUSY_IN_TX) && (busystate != I2C_BUSY_IN_RX)) {
@@ -305,7 +354,15 @@ uint8_t I2C_MasterSendDataIT(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint3
   return busystate;
 }
 
-
+/**
+ * @brief  Initiates master non-blocking data reception using interrupts.
+ *         Configures CR2 (7-bit address, read, NBYTES, AUTOEND) and enables RXIE, NACKIE, STOPIE, TCIE, ERRIE in CR1.
+ * @param  pI2CHandle : Pointer to I2C handle
+ * @param  pRxBuffer  : Pointer to receive buffer
+ * @param  Len        : Number of bytes to receive
+ * @param  SlaveAddr  : Target 7-bit slave address
+ * @return Communication state (I2C_BUSY_IN_RX or previous state if already busy)
+ */
 uint8_t I2C_MasterReceiveDataIT(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, uint32_t Len, uint8_t SlaveAddr) {
   uint8_t busystate = pI2CHandle->TxRxState;
   if ((busystate != I2C_BUSY_IN_TX) && (busystate != I2C_BUSY_IN_RX)) {
@@ -331,6 +388,11 @@ uint8_t I2C_MasterReceiveDataIT(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, ui
   return busystate;
 }
 
+/**
+ * @brief  Enables or disables the I2C interrupt line in NVIC ISER/ICER registers.
+ * @param  IRQNumber : NVIC IRQ number
+ * @param  EnorDi    : ENABLE or DISABLE
+ */
 void I2C_IRQConfig(uint8_t IRQNumber, uint8_t EnorDi) {
   if (EnorDi == ENABLE) {
     *NVIC_ISER |= (1 << IRQNumber);
@@ -340,6 +402,11 @@ void I2C_IRQConfig(uint8_t IRQNumber, uint8_t EnorDi) {
   }
 }
 
+/**
+ * @brief  Configures the interrupt priority for the I2C IRQ in NVIC.
+ * @param  IRQPriority : Priority level (0 to 3 on Cortex-M0+)
+ * @param  IRQNumber   : NVIC IRQ number
+ */
 void I2C_PriorityConfig(uint8_t IRQPriority, uint8_t IRQNumber) {
   uint8_t iprx = IRQNumber / 4;
   uint8_t iprx_section = IRQNumber % 4;
@@ -347,6 +414,11 @@ void I2C_PriorityConfig(uint8_t IRQPriority, uint8_t IRQNumber) {
   NVIC_PR_BASEADDR[iprx] |= (IRQPriority << shift_amount);
 }
 
+/**
+ * @brief  I2C Event Interrupt Handler.
+ *         Handles TXIS, RXNE, ADDR, NACKF, STOPF, and TC interrupt flags.
+ * @param  pHandle : Pointer to I2C handle
+ */
 void I2C_EV_IRQHandling(I2C_Handle_t *pHandle) {
   uint32_t txit, rxit, addrit, stopit, tcit, nackit, temp;
 
@@ -440,6 +512,11 @@ void I2C_EV_IRQHandling(I2C_Handle_t *pHandle) {
   }
 }
 
+/**
+ * @brief  I2C Error Interrupt Handler.
+ *         Clears error flags and invokes application callback for BERR, ARLO, OVR, PECERR, TIMEOUT, and ALERT.
+ * @param  pHandle : Pointer to I2C handle
+ */
 void I2C_ER_IRQHandling(I2C_Handle_t *pHandle)
 {
   uint32_t errit, temp;
@@ -537,6 +614,13 @@ void I2C_ER_IRQHandling(I2C_Handle_t *pHandle)
   }
 }
 
+/**
+ * @brief  Weak callback function called on I2C events and error conditions.
+ *         The application can override this function.
+ * @param  pI2CHandle : Pointer to I2C handle
+ * @param  AppEv      : Event code (e.g. I2C_EV_TX_CMPLT, I2C_EV_RX_CMPLT, I2C_EV_STOP, etc.)
+ */
 __attribute__ ((weak)) void I2C_ApplicationEventCallBack(I2C_Handle_t *pI2CHandle, uint8_t AppEv) {
-
+  (void)pI2CHandle;
+  (void)AppEv;
 }
